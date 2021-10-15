@@ -8,7 +8,7 @@
 _A simple sml to mqtt bridge_
 
 
-sml2mqtt is a asyncio application that can read multiple sml (Smart Message Language) streams 
+sml2mqtt is a asyncio application that can read multiple sml (Smart Message Language) streams
 from energy meters and report the values through mqtt.
 
 ## Installation

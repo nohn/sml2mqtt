@@ -1,14 +1,13 @@
 import asyncio
-import logging
 import time
 import traceback
 from asyncio import Future, create_task
 from typing import Final, Optional
-from sml2mqtt._log import log as _parent_logger
 
 from asyncio_mqtt import Client, MqttCodeError, MqttError, Will
 
 import sml2mqtt
+from sml2mqtt._log import log as _parent_logger
 from sml2mqtt.config import CONFIG
 
 log = _parent_logger.getChild('mqtt')
@@ -43,7 +42,7 @@ async def _connect():
     while True:
         try:
             await asyncio.sleep(WAIT_BETWEEN_CONNECTS)
-            
+
             will_topic = CONFIG.mqtt.topics.get_topic(CONFIG.mqtt.topics.last_will)
 
             MQTT = Client(
@@ -97,7 +96,7 @@ async def publish(topic, value):
         log.error(f'{e} ({e.__class__.__name__})')
         if isinstance(e, MqttCodeError) and e.rc == 4 and PUBS_FAILED_SINCE is None:
             PUBS_FAILED_SINCE = time.time()
-        
+
         if PUBS_FAILED_SINCE is not None:
             if time.time() - PUBS_FAILED_SINCE >= RECONNECT_AFTER:
                 await connect()

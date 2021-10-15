@@ -4,4 +4,3 @@ class DeviceSetupFailed(Exception):
 
 class DeviceFailed(Exception):
     pass
-

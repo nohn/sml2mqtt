@@ -5,8 +5,7 @@ from typing import Dict, Optional, Type, Union
 
 import sml2mqtt.mqtt
 from sml2mqtt._log import log
-from sml2mqtt.errors import DeviceSetupFailed, DeviceFailed
-
+from sml2mqtt.errors import DeviceFailed, DeviceSetupFailed
 
 return_code: Optional[int] = None
 
@@ -16,14 +15,21 @@ async def stop_loop():
     get_event_loop().stop()
 
 
-def shutdown_with_exception(e: Union[Exception, Type[Exception]], log_traceback=True):
+def shutdown_with_exception(e: Union[Exception, Type[Exception]]):
     global return_code
 
     ret_map: Dict[int, Type[Exception]] = {10: DeviceSetupFailed, 11: DeviceFailed}
 
+    log_traceback = True
+
     # get return code based on the error
     for r, cls in ret_map.items():
-        if isinstance(e, cls) or e is cls:
+        if isinstance(e, cls):
+            return_code = r
+            break
+
+        if e is cls:
+            log_traceback = False
             return_code = r
             break
     else:
@@ -40,7 +46,7 @@ def get_ret_code() -> int:
     if return_code is None:
         log.warning('No return code set!')
         return 2
-    
+
     return return_code
 
 

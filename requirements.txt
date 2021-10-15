@@ -4,4 +4,6 @@ EasyCo
 voluptuous==0.12.2
 smllib==0.7
 
+# Testing
 pre-commit==2.15.0
+pytest==6.2.5
