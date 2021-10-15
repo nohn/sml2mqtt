@@ -1,12 +1,11 @@
 import asyncio
-import logging
 import platform
 import sys
 import traceback
 import typing
 
 from sml2mqtt._args import get_command_line_args
-from sml2mqtt._log import setup_log
+from sml2mqtt._log import log, setup_log
 from sml2mqtt._signals import add_shutdown_handler, get_ret_code, shutdown_with_exception
 from sml2mqtt.config import CONFIG
 from sml2mqtt.mqtt import connect
@@ -27,7 +26,6 @@ async def a_main():
 
 def main() -> typing.Union[int, str]:
     args = get_command_line_args()
-    log = logging.getLogger('sml2mqtt')
 
     CONFIG.load(args.config)
     setup_log()
@@ -56,4 +54,6 @@ def main() -> typing.Union[int, str]:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    ret = main()
+    log.info(f'Closed with return code {ret}')
+    sys.exit(ret)

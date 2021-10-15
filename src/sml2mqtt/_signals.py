@@ -1,10 +1,14 @@
-import logging
 import signal
+import traceback
 from asyncio import create_task, get_event_loop, sleep
-from typing import Optional, Union
+from typing import Dict, Optional, Type, Union
 
-log = logging.getLogger('sml2mqtt')
-error_text: Optional[str] = None
+import sml2mqtt.mqtt
+from sml2mqtt._log import log
+from sml2mqtt.errors import DeviceSetupFailed, DeviceFailed
+
+
+return_code: Optional[int] = None
 
 
 async def stop_loop():
@@ -12,26 +16,49 @@ async def stop_loop():
     get_event_loop().stop()
 
 
-def shutdown_with_exception(e: Exception):
-    global error_text
-    error_text = str(e)
+def shutdown_with_exception(e: Union[Exception, Type[Exception]], log_traceback=True):
+    global return_code
 
-    log.error(error_text)
-    create_task(stop_loop())
+    ret_map: Dict[int, Type[Exception]] = {10: DeviceSetupFailed, 11: DeviceFailed}
+
+    # get return code based on the error
+    for r, cls in ret_map.items():
+        if isinstance(e, cls) or e is cls:
+            return_code = r
+            break
+    else:
+        return_code = 1
+
+    if log_traceback:
+        for line in traceback.format_exc().splitlines():
+            log.error(line)
+
+    do_shutdown()
 
 
-def get_ret_code() -> Union[int, str]:
-    if error_text is not None:
-        return error_text
-    return 0
+def get_ret_code() -> int:
+    if return_code is None:
+        log.warning('No return code set!')
+        return 2
+    
+    return return_code
 
 
 def shutdown_handler(sig, frame):
+    global return_code
+    return_code = 0
+
     print('Shutting down ...')
     log.info('Shutting down ...')
-    create_task(stop_loop())
+
+    do_shutdown()
 
 
 def add_shutdown_handler():
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
+
+
+def do_shutdown():
+    create_task(sml2mqtt.mqtt.shutdown_mqtt())
+    create_task(stop_loop())

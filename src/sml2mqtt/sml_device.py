@@ -1,4 +1,3 @@
-import logging
 import traceback
 from asyncio import create_task
 from binascii import b2a_hex
@@ -9,11 +8,13 @@ from smllib import CrcError, SmlStreamReader
 
 import sml2mqtt._args
 import sml2mqtt.sml_serial
-from ._signals import stop_loop
-from .config import CONFIG
-from .mqtt import publish
-from .sml_device_status import DeviceStatus
-from .sml_serial import log as serial_log
+from sml2mqtt._log import log as _parent_logger
+from sml2mqtt._signals import stop_loop, shutdown_with_exception
+from sml2mqtt.config import CONFIG
+from sml2mqtt.errors import DeviceSetupFailed, DeviceFailed
+from sml2mqtt.mqtt import publish
+from sml2mqtt.sml_device_status import DeviceStatus
+from sml2mqtt.sml_serial import log as serial_log
 
 ALL: Dict[str, 'Device'] = {}
 
@@ -21,10 +22,13 @@ ALL: Dict[str, 'Device'] = {}
 class Device:
     @classmethod
     async def create(cls, url: str, timeout: float, skip_values: List[str]):
-        c = cls(url, set(skip_values))
-        c.serial = await sml2mqtt.sml_serial.SmlSerial.create(url, c, timeout)
-        ALL[url] = c
-        return c
+        try:
+            c = cls(url, set(skip_values))
+            c.serial = await sml2mqtt.sml_serial.SmlSerial.create(url, c, timeout)
+            ALL[url] = c
+            return c
+        except Exception as e:
+            raise DeviceSetupFailed(f'Setup of "{url}" failed!')
 
     def __init__(self, url: str, skip_values: Set[str]):
         self.stream = SmlStreamReader()
@@ -33,7 +37,7 @@ class Device:
         self.serial: 'sml2mqtt.sml_serial.SmlSerial' = None
         self.device_name = url.lower()
 
-        self.log = logging.getLogger(f'sml.device.{url.split("/")[-1]}')
+        self.log = _parent_logger.getChild(f'device.{url.split("/")[-1]}')
 
         self.skip_values = skip_values
 
@@ -57,7 +61,7 @@ class Device:
         # If all ports are closed or we have errors we shut down
         if all(map(lambda x: x.status in (DeviceStatus.PORT_CLOSED, DeviceStatus.ERROR, DeviceStatus.SHUTDOWN),
                    ALL.values())):
-            create_task(stop_loop())
+            shutdown_with_exception(DeviceFailed, log_traceback=False)
 
     def publish_value(self, name: str, value):
         create_task(

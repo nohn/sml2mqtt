@@ -5,6 +5,9 @@ from logging.handlers import RotatingFileHandler
 
 import sml2mqtt
 import sml2mqtt._args
+from sml2mqtt.__version__ import __version__
+
+log = logging.getLogger('sml')
 
 
 class MidnightRotatingFileHandler(RotatingFileHandler):
@@ -46,3 +49,5 @@ def setup_log():
         ch.setLevel(lvl)
         ch.setFormatter(log_format)
         root.addHandler(ch)
+
+    log.info(f'Starting V{__version__}')

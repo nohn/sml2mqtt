@@ -1,15 +1,16 @@
 import asyncio
 import typing
-import logging
 
 from serial_asyncio import SerialTransport, create_serial_connection
-from .sml_device_status import DeviceStatus
+
+from sml2mqtt._log import log as _parent_logger
+from sml2mqtt.sml_device_status import DeviceStatus
 
 if typing.TYPE_CHECKING:
     from .sml_device import Device
 
 
-log = logging.getLogger('sml.serial')
+log = _parent_logger.getChild('serial')
 
 
 class SmlSerial(asyncio.Protocol):
