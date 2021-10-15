@@ -27,7 +27,7 @@ class Device:
             c.serial = await sml2mqtt.sml_serial.SmlSerial.create(url, c, timeout)
             ALL[url] = c
             return c
-        except Exception as e:
+        except Exception:
             raise DeviceSetupFailed(f'Setup of "{url}" failed!')
 
     def __init__(self, url: str, skip_values: Set[str]):
